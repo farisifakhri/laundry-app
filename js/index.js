@@ -1,27 +1,107 @@
-$(document).ready(function () {
-    getDataCountPelanggan();
-    getDataCountTransaksi();
-})
+let chartInstances = {};
 
-function getDataCountPelanggan() {
-    $.ajax({
-        url: "process/pelanggan/process.php",
-        method: "GET",
-        data: { action: 'getcount' },
-        dataType: "json",
-        success: function (data) {
-            totalPelanggan = parseInt(data) || 0;
-            $('#countPelanggan').text(totalPelanggan);
-        },
-        error: function (xhr, status, error) {
-            console.error('Error AJAX:', error);
-            $('#countPelanggan').text('0');
-        }
-    });
+// =======================
+// HELPER FETCH (AJAX)
+// =======================
+async function fetchData(url, params = {}) {
+    try {
+        const res = await $.ajax({
+            url: url,
+            method: 'GET',
+            data: params,
+            dataType: 'json'
+        });
+        return res;
+    } catch (error) {
+        console.error('Fetch error:', error);
+        throw error;
+    }
 }
 
+// =======================
+// INIT
+// =======================
+async function initDashboard() {
+    await Promise.all([
+        getDataCountPelanggan(),
+        getDataCountTransaksi()
+    ]);
+
+    // --- TAMBAHAN BARU: Setel bulan default ke bulan ini ---
+    const now = new Date();
+    // Format YYYY-MM (misal: 2026-04)
+    const currentMonth = now.getFullYear() + '-' + String(now.getMonth() + 1).padStart(2, '0');
+
+    $('#startDate').val(currentMonth);
+    $('#endDate').val(currentMonth);
+    
+    // Tampilkan kolom "Sampai Bulan"
+    $('#endDateWrapper').removeClass('d-none');
+    
+    // Langsung panggil grafik saat halaman pertama kali dibuka
+    getDataGrafik();
+}
+
+// =======================
+// DATE HANDLER
+// =======================
 function onStartDateChange() {
-    console.log('Start date changed');
+    const startDate = document.getElementById('startDate').value;
+    const wrapper = document.getElementById('endDateWrapper');
+    const endDate = document.getElementById('endDate');
+
+    if (startDate) {
+        wrapper.classList.remove('d-none');
+        endDate.min = startDate;
+        
+        // --- TAMBAHAN BARU: Kalau endDate sudah ada isinya, langsung update grafik ---
+        if (endDate.value) {
+            getDataGrafik();
+        }
+    } else {
+        wrapper.classList.add('d-none');
+        endDate.value = '';
+    }
+}
+
+// =======================
+// COUNT PELANGGAN
+// =======================
+async function getDataCountPelanggan() {
+    try {
+        const data = await fetchData("process/pelanggan/process.php", {
+            action: 'getcount'
+        });
+
+        const total = parseInt(data) || 0;
+        $('#countPelanggan').text(total);
+
+    } catch (error) {
+        $('#countPelanggan').text('0');
+    }
+}
+
+// =======================
+// COUNT TRANSAKSI
+// =======================
+async function getDataCountTransaksi() {
+    try {
+        const data = await fetchData("process/pemesanan/process.php", {
+            action: 'getcount'
+        });
+
+        const total = parseInt(data) || 0;
+        $('#countPemesanan').text(total);
+
+    } catch (error) {
+        $('#countPemesanan').text('0');
+    }
+}
+
+// =======================
+// DATE HANDLER
+// =======================
+function onStartDateChange() {
     const startDate = document.getElementById('startDate').value;
     const wrapper = document.getElementById('endDateWrapper');
     const endDate = document.getElementById('endDate');
@@ -34,28 +114,10 @@ function onStartDateChange() {
         endDate.value = '';
     }
 }
-async function getDataCountTransaksi() {
-    $.ajax({
-        url: "process/pemesanan/process.php",
-        method: "GET",
-        data: {
-            action: 'getcount'
-        },
-        dataType: "json",
-        success: function (data) {
-            totalData = parseInt(data) || 0;
-            $('#countPemesanan').text(totalData);
-        },
-        error: function (xhr, status, error) {
-            console.error('Error AJAX:', error);
-        }
-    })
-    return totalData;
-}
 
-let chartTransaksi = null;
-let chartPelanggan = null;
-
+// =======================
+// GET DATA GRAFIK
+// =======================
 async function getDataGrafik() {
     const startDate = $('#startDate').val();
     const endDate   = $('#endDate').val();
@@ -63,105 +125,112 @@ async function getDataGrafik() {
     if (!startDate || !endDate) return;
 
     try {
-        const result = await getDetailTransaksi(startDate, endDate);
-        const result2 = await getPelangganPerHari(startDate, endDate);
+        const [transaksi, pelanggan] = await Promise.all([
+            fetchData('process/pemesanan/process.php', {
+                action: 'getdetail',
+                startDate,
+                endDate
+            }),
+            fetchData('process/pemesanan/process.php', {
+                action: 'getPelangganPerHari',
+                startDate,
+                endDate
+            })
+        ]);
 
-        if (!result.success || !result2.success) return;
+        if (!transaksi.success || !pelanggan.success) {
+            console.warn('Data tidak valid');
+            return;
+        }
 
-        // ================= PREPARE DATA =================
-        const labels = result.data.map(item => item.tanggal);
-
-        const dataTransaksi = result.data.map(item => item.total);
-        const dataPelanggan = result2.data.map(item => item.total_pelanggan);
-
-        // ================= GRAFIK TRANSAKSI =================
-        const ctxTransaksi = document.getElementById('grafikTransaksi').getContext('2d');
-
-        if (chartTransaksi) chartTransaksi.destroy();
-
-        chartTransaksi = new Chart(ctxTransaksi, {
-            type: 'line',
-            data: {
-                labels: labels,
-                datasets: [{
-                    label: 'Total Transaksi',
-                    data: dataTransaksi,
-                    borderWidth: 3,
-                    tension: 0.4,
-                    fill: true
-                }]
-            },
-            options: {
-                responsive: true,
-                plugins: {
-                    legend: { display: true }
-                },
-                scales: {
-                    y: {
-                        beginAtZero: true,
-                        ticks: { precision: 0 }
-                    }
-                }
-            }
-        });
-
-        // ================= GRAFIK PELANGGAN =================
-        const ctxPelanggan = document.getElementById('grafikPelanggan').getContext('2d');
-
-        if (chartPelanggan) chartPelanggan.destroy();
-
-        chartPelanggan = new Chart(ctxPelanggan, {
-            type: 'bar',
-            data: {
-                labels: labels,
-                datasets: [{
-                    label: 'Total Pelanggan',
-                    data: dataPelanggan,
-                    borderWidth: 1
-                }]
-            },
-            options: {
-                responsive: true,
-                plugins: {
-                    legend: { display: true }
-                },
-                scales: {
-                    y: {
-                        beginAtZero: true,
-                        ticks: { precision: 0 }
-                    }
-                }
-            }
-        });
+        renderChart(transaksi.data, pelanggan.data);
 
     } catch (error) {
         console.error('Gagal ambil data grafik:', error);
     }
 }
 
-function getDetailTransaksi(startDate, endDate) {
-    return $.ajax({
-        url: 'process/pemesanan/process.php',
-        method: 'GET',
-        dataType: 'json',
+// =======================
+// RENDER CHART
+// =======================
+function renderChart(dataTransaksi, dataPelanggan) {
+    const labels = dataTransaksi.map(i => i.tanggal);
+
+    const transaksiData = dataTransaksi.map(i => i.total);
+    const pelangganData = dataPelanggan.map(i => i.total_pelanggan);
+
+    renderLineChart('grafikTransaksi', 'Total Transaksi', labels, transaksiData);
+    renderBarChart('grafikPelanggan', 'Total Pelanggan', labels, pelangganData);
+}
+
+// =======================
+// LINE CHART
+// =======================
+function renderLineChart(id, label, labels, data) {
+    const ctx = document.getElementById(id).getContext('2d');
+
+    if (chartInstances[id]) {
+        chartInstances[id].destroy();
+    }
+
+    chartInstances[id] = new Chart(ctx, {
+        type: 'line',
         data: {
-            action: 'getdetail',
-            startDate,
-            endDate
+            labels: labels,
+            datasets: [{
+                label: label,
+                data: data,
+                borderWidth: 3,
+                tension: 0.4,
+                fill: true
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                legend: { display: true }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    ticks: { precision: 0 }
+                }
+            }
         }
     });
 }
 
-function getPelangganPerHari(startDate, endDate) {
-    return $.ajax({
-        url: 'process/pemesanan/process.php',
-        method: 'GET',
-        dataType: 'json',
+// =======================
+// BAR CHART
+// =======================
+function renderBarChart(id, label, labels, data) {
+    const ctx = document.getElementById(id).getContext('2d');
+
+    if (chartInstances[id]) {
+        chartInstances[id].destroy();
+    }
+
+    chartInstances[id] = new Chart(ctx, {
+        type: 'bar',
         data: {
-            action: 'getPelangganPerHari',
-            startDate,
-            endDate
+            labels: labels,
+            datasets: [{
+                label: label,
+                data: data,
+                borderWidth: 1
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                legend: { display: true }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    ticks: { precision: 0 }
+                }
+            }
         }
     });
-    
 }

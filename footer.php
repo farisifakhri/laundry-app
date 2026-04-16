@@ -27,5 +27,25 @@
             echo "<script src='$jsFile'></script>";
         }
     ?>
+
+    <script>
+        // Script untuk toggle sidebar di tampilan mobile
+        $(document).ready(function() {
+            $('#btnToggleSidebar').click(function(e) {
+                e.stopPropagation();
+                $('.sidebar').toggleClass('show');
+            });
+
+            // Klik di luar sidebar untuk menutupnya (khusus mobile)
+            $(document).click(function(e) {
+                if ($(window).width() <= 768) {
+                    if (!$(e.target).closest('.sidebar, #btnToggleSidebar').length) {
+                        $('.sidebar').removeClass('show');
+                    }
+                }
+            });
+        });
+    </script>
+
 </body>
 </html>

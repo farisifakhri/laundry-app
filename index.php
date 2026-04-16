@@ -37,20 +37,36 @@
     </div>
 
     <!-- Filter Laporan -->
-    <div class="card mb-4">
-        <div class="card-header d-flex align-items-center gap-2">
-            <i class="bi bi-funnel text-primary"></i>
-            <span class="card-title">Filter Laporan</span>
-        </div>
-        <div class="card-body">
-            <div class="row g-3 align-items-end">
-                <div class="col-md-4">
-                    <label class="form-label">Dari Bulan</label>
-                    <input type="month" class="form-control" id="startDate" onchange="onStartDateChange()">
+    <div class="card mb-4 border-0" style="box-shadow: 0 4px 20px rgba(0,0,0,0.05); border-radius: 16px;">
+        <div class="card-body p-4">
+            <div class="d-flex flex-column flex-md-row align-items-md-center justify-content-between gap-3">
+                
+                <div class="d-flex align-items-center gap-3">
+                    <div class="avatar-icon" style="background: var(--primary-light); color: var(--primary); width: 42px; height: 42px; font-size: 18px; border-radius: 12px;">
+                        <i class="bi bi-calendar2-range-fill"></i>
+                    </div>
+                    <div>
+                        <h6 class="mb-0 fw-bold" style="color: var(--text-primary); font-size: 15px;">Filter Periode Grafik</h6>
+                        <small style="color: var(--text-muted); font-size: 12px;">Tentukan rentang bulan untuk melihat analisis transaksi</small>
+                    </div>
                 </div>
-                <div class="col-md-4 d-none" id="endDateWrapper">
-                    <label class="form-label">Sampai Bulan</label>
-                    <input type="month" class="form-control" id="endDate" onchange="getDataGrafik()">
+
+                <div class="d-flex align-items-center gap-2">
+                    <div class="input-group shadow-sm" style="width: auto; border-radius: 10px; overflow: hidden;">
+                        <span class="input-group-text bg-white border-end-0 text-muted px-3">
+                            <i class="bi bi-calendar-event"></i>
+                        </span>
+                        <input type="month" class="form-control border-start-0 fw-semibold" id="startDate" onchange="onStartDateChange()" style="cursor: pointer;">
+                    </div>
+                    
+                    <i class="bi bi-arrow-right-short text-muted fs-4 d-none d-md-block" id="endDateArrow"></i>
+                    
+                    <div class="input-group shadow-sm" id="endDateWrapper" style="width: auto; border-radius: 10px; overflow: hidden;">
+                        <span class="input-group-text bg-white border-end-0 text-muted px-3">
+                            <i class="bi bi-calendar-check"></i>
+                        </span>
+                        <input type="month" class="form-control border-start-0 fw-semibold" id="endDate" onchange="getDataGrafik()" style="cursor: pointer;">
+                    </div>
                 </div>
             </div>
         </div>

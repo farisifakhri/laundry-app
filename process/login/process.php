@@ -1,18 +1,26 @@
 <?php
 require_once '../config.php';
-session_start(); // ✅ tambahkan ini di atas
+session_start();
 
 header('Content-Type: application/json');
 
+// ❗ Matikan output error ke browser
+ini_set('display_errors', 0);
+error_reporting(E_ALL);
+
 function loginUser($conn, $email, $password) {
     $stmt = $conn->prepare("SELECT * FROM user WHERE email = ?");
+    
+    if (!$stmt) {
+        return ['success' => false, 'error' => 'Query error: ' . $conn->error];
+    }
+
     $stmt->bind_param("s", $email);
     $stmt->execute();
     $result = $stmt->get_result();
 
     if ($row = $result->fetch_assoc()) {
         if (password_verify($password, $row['password'])) {
-            // ✅ Simpan data login ke session
             $_SESSION['user'] = [
                 'id' => $row['id'],
                 'nama' => $row['nama'],
@@ -20,10 +28,7 @@ function loginUser($conn, $email, $password) {
                 'role' => $row['role']
             ];
 
-            return [
-                'success' => true,
-                'user' => $_SESSION['user']
-            ];
+            return ['success' => true, 'user' => $_SESSION['user']];
         } else {
             return ['success' => false, 'error' => 'Password salah.'];
         }
@@ -32,10 +37,10 @@ function loginUser($conn, $email, $password) {
     }
 }
 
-$action = $_POST['action'] ?? '';
+try {
+    $action = $_POST['action'] ?? '';
 
-switch ($action) {
-    case 'login':
+    if ($action === 'login') {
         $email = $_POST['email'] ?? '';
         $password = $_POST['password'] ?? '';
 
@@ -46,9 +51,14 @@ switch ($action) {
 
         $result = loginUser($conn, $email, $password);
         echo json_encode($result);
-        break;
-
-    default:
+    } else {
         echo json_encode(['success' => false, 'error' => 'Aksi tidak valid.']);
-        break;
+    }
+
+} catch (Throwable $e) {
+    echo json_encode([
+        'success' => false,
+        'error' => 'Server error',
+        'debug' => $e->getMessage()
+    ]);
 }

@@ -77,6 +77,10 @@ $currentPage = basename($_SERVER['PHP_SELF'], '.php');
 
     <nav class="navbar navbar-expand bg-white px-3 py-2">
         <div class="container-fluid">
+            <button class="btn border-0 d-md-none me-2 px-1" id="btnToggleSidebar">
+                <i class="bi bi-list fs-4" style="color:var(--text-primary)"></i>
+            </button>
+
             <h5 class="navbar-page-title mb-0">
                 <?php
                 $titles = [
