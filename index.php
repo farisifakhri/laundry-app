@@ -2,124 +2,89 @@
 
 <div class="container-fluid">
 
-    <!-- Judul -->
-    <div class="mb-5">
-        <h1 class="fw-bold">Dashboard</h1>
-        <p class="text-muted fs-5">Selamat datang di sistem manajemen Laundry</p>
+    <!-- Page Header -->
+    <div class="page-header">
+        <h1>Dashboard</h1>
+        <p>Selamat datang kembali, <strong><?= htmlspecialchars($user['nama'] ?? '') ?></strong> 👋</p>
     </div>
 
-    <!-- Info cards -->
-    <div class="row g-4">
-
+    <!-- Stat Cards -->
+    <div class="row g-4 mb-4">
         <div class="col-md-6">
-            <div class="card stat-card bg-primary text-white shadow-lg border-0 rounded-4">
+            <div class="card stat-card stat-card-primary">
                 <div class="card-body">
-                    <h6 class="text-uppercase mb-2">Total Pelanggan</h6>
-                    <h1 class="fw-bold" id="countPelanggan"></h1>
-                    <small>Pengguna terdaftar</small>
+                    <div class="stat-card-icon">
+                        <i class="bi bi-people-fill"></i>
+                    </div>
+                    <div class="stat-label">Total Pelanggan</div>
+                    <div class="stat-value" id="countPelanggan">—</div>
+                    <div class="stat-sub">Pengguna terdaftar</div>
                 </div>
             </div>
         </div>
-
         <div class="col-md-6">
-            <div class="card stat-card bg-success text-white shadow-lg border-0 rounded-4">
+            <div class="card stat-card stat-card-success">
                 <div class="card-body">
-                    <h6 class="text-uppercase mb-2">Total Pesanan</h6>
-                    <h1 class="fw-bold" id="countPemesanan"></h1>
-                    <small>Pesanan masuk</small>
+                    <div class="stat-card-icon">
+                        <i class="bi bi-bag-check-fill"></i>
+                    </div>
+                    <div class="stat-label">Total Transaksi</div>
+                    <div class="stat-value" id="countPemesanan">—</div>
+                    <div class="stat-sub">Pesanan masuk</div>
                 </div>
             </div>
         </div>
-
     </div>
-  <!-- ================= FILTER LAPORAN ================= -->
-    <div class="card mt-5 shadow-lg border-0 rounded-4">
+
+    <!-- Filter Laporan -->
+    <div class="card mb-4">
+        <div class="card-header d-flex align-items-center gap-2">
+            <i class="bi bi-funnel text-primary"></i>
+            <span class="card-title">Filter Laporan</span>
+        </div>
         <div class="card-body">
-            <h5 class="fw-bold mb-3">Filter Laporan</h5>
             <div class="row g-3 align-items-end">
                 <div class="col-md-4">
                     <label class="form-label">Dari Bulan</label>
-                    <input
-                        type="month"
-                        class="form-control"
-                        id="startDate"
-                        onchange="onStartDateChange()"
-                    >
+                    <input type="month" class="form-control" id="startDate" onchange="onStartDateChange()">
                 </div>
-
                 <div class="col-md-4 d-none" id="endDateWrapper">
                     <label class="form-label">Sampai Bulan</label>
-                    <input
-                        type="month"
-                        class="form-control"
-                        id="endDate"
-                        onchange="getDataGrafik()"
-                    >
+                    <input type="month" class="form-control" id="endDate" onchange="getDataGrafik()">
                 </div>
             </div>
-
-
-            <!--
-            NOTE BACKEND:
-            - User memilih rentang bulan (bulan A - bulan B)
-            - Backend akan mengambil DATA PER TANGGAL
-            - Contoh rentang: 2024-02 s/d 2024-03
-            -->
         </div>
     </div>
 
-    <!-- ================= GRAFIK TRANSAKSI PER TANGGAL ================= -->
-    <div class="card mt-5 shadow-lg border-0 rounded-4">
+    <!-- Grafik Transaksi -->
+    <div class="card mb-4">
+        <div class="card-header d-flex align-items-center gap-2">
+            <i class="bi bi-bar-chart-line text-primary"></i>
+            <span class="card-title">Grafik Transaksi Harian</span>
+        </div>
         <div class="card-body">
-            <h5 class="fw-bold mb-4">Grafik Transaksi Harian</h5>
             <canvas id="grafikTransaksi" height="100"></canvas>
-
-            <!--
-            NOTE BACKEND:
-            - Data grafik diambil dari variabel:
-            $transaksi
-            - Data sudah DIKELOMPOKKAN PER TANGGAL
-            - Contoh format data:
-            
-            $transaksi = [
-                ['tanggal' => '2024-02-01', 'total' => 5],
-                ['tanggal' => '2024-02-02', 'total' => 8],
-                ['tanggal' => '2024-02-03', 'total' => 6],
-                ...
-                ['tanggal' => '2024-03-31', 'total' => 10]
-            ];
-            -->
         </div>
     </div>
 
-    <!-- ================= GRAFIK PELANGGAN PER TANGGAL ================= -->
-    <div class="card mt-5 shadow-lg border-0 rounded-4 mb-5">
+    <!-- Grafik Pelanggan -->
+    <div class="card mb-4">
+        <div class="card-header d-flex align-items-center gap-2">
+            <i class="bi bi-person-lines-fill text-primary"></i>
+            <span class="card-title">Grafik Pelanggan Harian</span>
+        </div>
         <div class="card-body">
-            <h5 class="fw-bold mb-4">Grafik Pelanggan Harian</h5>
             <canvas id="grafikPelanggan" height="100"></canvas>
-
-            <!--
-            NOTE BACKEND:
-            - Data pelanggan juga ditampilkan PER TANGGAL
-            - Bisa digabung atau dipisah dari variabel $transaksi
-            - Contoh:
-            
-            $transaksi['pelanggan'] = [
-                ['tanggal' => '2024-02-01', 'total' => 2],
-                ['tanggal' => '2024-02-02', 'total' => 3],
-                ...
-            ];
-            -->
         </div>
     </div>
 
-
-    <!-- Highlight card -->
-    <div class="card mt-5 spotlight-card border-0 shadow-lg rounded-4">
+    <!-- Info Banner -->
+    <div class="card spotlight-card mb-4">
         <div class="card-body p-5 text-center">
-            <h3 class="fw-bold mb-3">Sistem Laundry Aktif ✅</h3>
-            <p class="fs-5 text-muted">
-                Kelola pesanan, pelanggan, dan laporan dengan mudah dan cepat.
+            <div style="font-size:40px;margin-bottom:12px">✅</div>
+            <h3 class="fw-bold mb-3">Sistem Laundry Aktif</h3>
+            <p class="fs-6 text-muted mb-0">
+                Kelola pesanan, pelanggan, dan laporan dengan mudah dan efisien.
             </p>
         </div>
     </div>
