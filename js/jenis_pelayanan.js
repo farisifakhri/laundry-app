@@ -137,25 +137,37 @@ function getDataJenisPelayanan() {
                 tbody.empty();
 
                 if (data.length > 0) {
-                    data.forEach((item, i) => {
-                        tbody.append(`
-                            <tr>
-                                <td>${(currentPage - 1) * limit + (i + 1)}</td>
-                                <td>${item.nama}</td>
-                                <td>${item.harga}</td>
-                                <td>${item.status == '1' ? 'Aktif' : 'Tidak Aktif'}</td>
-                                <td>
-                                    <button class="btn btn-sm btn-primary" onclick='modalEdit(${JSON.stringify(item)})'>
-                                        <i class="bi bi-pencil-square"></i>
-                                    </button>
-                                    <button class="btn btn-sm btn-danger" onclick="deleteJenisPelayanan(${item.id})">
-                                        <i class="bi bi-trash"></i>
-                                    </button>
-                                </td>
-                            </tr>
-                        `);
-                    });
-                } else {
+    data.forEach((item, i) => {
+        const statusBadge = item.status == '1' 
+            ? '<span class="badge bg-success-light text-success rounded-pill px-3"><i class="bi bi-check-circle-fill me-1"></i> Aktif</span>' 
+            : '<span class="badge bg-danger-light text-danger rounded-pill px-3"><i class="bi bi-x-circle-fill me-1"></i> Tidak Aktif</span>';
+
+        tbody.append(`
+            <tr>
+                <td class="ps-4 fw-bold text-muted small">${(currentPage - 1) * limit + (i + 1)}</td>
+                <td>
+                    <div class="fw-bold text-primary">${item.nama}</div>
+                    <div class="small text-muted">ID Layanan: #LS-${item.id}</div>
+                </td>
+                <td>
+                    <span class="fw-bold text-dark">Rp ${parseInt(item.harga).toLocaleString('id-ID')}</span>
+                    <small class="text-muted">/Kg</small>
+                </td>
+                <td>${statusBadge}</td>
+                <td class="pe-4 text-end">
+                    <div class="btn-group shadow-sm border rounded-3 overflow-hidden">
+                        <button class="btn btn-sm btn-white py-2" onclick='modalEdit(${JSON.stringify(item)})' title="Ubah">
+                            <i class="bi bi-pencil-square text-primary"></i>
+                        </button>
+                        <button class="btn btn-sm btn-white py-2" onclick="deleteJenisPelayanan(${item.id})" title="Hapus">
+                            <i class="bi bi-trash text-danger"></i>
+                        </button>
+                    </div>
+                </td>
+            </tr>
+        `);
+    });
+} else {
                     tbody.append('<tr><td colspan="7" class="text-center">Belum ada data.</td></tr>');
                 }
 

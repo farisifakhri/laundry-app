@@ -1,236 +1,83 @@
-let chartInstances = {};
+let chartTransaksi = null;
+let chartPelanggan = null;
 
-// =======================
-// HELPER FETCH (AJAX)
-// =======================
-async function fetchData(url, params = {}) {
-    try {
-        const res = await $.ajax({
-            url: url,
-            method: 'GET',
-            data: params,
-            dataType: 'json'
-        });
-        return res;
-    } catch (error) {
-        console.error('Fetch error:', error);
-        throw error;
-    }
-}
+$(document).ready(function () {
+    initDashboard();
+});
 
-// =======================
-// INIT
-// =======================
 async function initDashboard() {
-    await Promise.all([
-        getDataCountPelanggan(),
-        getDataCountTransaksi()
-    ]);
+    // Ambil angka counter secara paralel
+    Promise.all([
+        $.get("process/pelanggan/process.php?action=getcount"),
+        $.get("process/pemesanan/process.php?action=getcount")
+    ]).then(([countP, countT]) => {
+        $('#countPelanggan').text(parseInt(countP) || 0);
+        $('#countPemesanan').text(parseInt(countT) || 0);
+    });
 
-    // --- TAMBAHAN BARU: Setel bulan default ke bulan ini ---
+    // Set default ke bulan berjalan
     const now = new Date();
-    // Format YYYY-MM (misal: 2026-04)
     const currentMonth = now.getFullYear() + '-' + String(now.getMonth() + 1).padStart(2, '0');
-
     $('#startDate').val(currentMonth);
     $('#endDate').val(currentMonth);
-    
-    // Tampilkan kolom "Sampai Bulan"
     $('#endDateWrapper').removeClass('d-none');
     
-    // Langsung panggil grafik saat halaman pertama kali dibuka
-    getDataGrafik();
+    getDataGrafik(); // Langsung muat grafik
 }
 
-// =======================
-// DATE HANDLER
-// =======================
 function onStartDateChange() {
-    const startDate = document.getElementById('startDate').value;
-    const wrapper = document.getElementById('endDateWrapper');
-    const endDate = document.getElementById('endDate');
-
+    const startDate = $('#startDate').val();
     if (startDate) {
-        wrapper.classList.remove('d-none');
-        endDate.min = startDate;
-        
-        // --- TAMBAHAN BARU: Kalau endDate sudah ada isinya, langsung update grafik ---
-        if (endDate.value) {
-            getDataGrafik();
-        }
-    } else {
-        wrapper.classList.add('d-none');
-        endDate.value = '';
+        $('#endDateWrapper').removeClass('d-none');
+        $('#endDate').attr('min', startDate);
+        if ($('#endDate').val()) getDataGrafik();
     }
 }
 
-// =======================
-// COUNT PELANGGAN
-// =======================
-async function getDataCountPelanggan() {
-    try {
-        const data = await fetchData("process/pelanggan/process.php", {
-            action: 'getcount'
-        });
-
-        const total = parseInt(data) || 0;
-        $('#countPelanggan').text(total);
-
-    } catch (error) {
-        $('#countPelanggan').text('0');
-    }
-}
-
-// =======================
-// COUNT TRANSAKSI
-// =======================
-async function getDataCountTransaksi() {
-    try {
-        const data = await fetchData("process/pemesanan/process.php", {
-            action: 'getcount'
-        });
-
-        const total = parseInt(data) || 0;
-        $('#countPemesanan').text(total);
-
-    } catch (error) {
-        $('#countPemesanan').text('0');
-    }
-}
-
-// =======================
-// DATE HANDLER
-// =======================
-function onStartDateChange() {
-    const startDate = document.getElementById('startDate').value;
-    const wrapper = document.getElementById('endDateWrapper');
-    const endDate = document.getElementById('endDate');
-
-    if (startDate) {
-        wrapper.classList.remove('d-none');
-        endDate.min = startDate;
-    } else {
-        wrapper.classList.add('d-none');
-        endDate.value = '';
-    }
-}
-
-// =======================
-// GET DATA GRAFIK
-// =======================
 async function getDataGrafik() {
     const startDate = $('#startDate').val();
     const endDate   = $('#endDate').val();
-
     if (!startDate || !endDate) return;
 
     try {
-        const [transaksi, pelanggan] = await Promise.all([
-            fetchData('process/pemesanan/process.php', {
-                action: 'getdetail',
-                startDate,
-                endDate
-            }),
-            fetchData('process/pemesanan/process.php', {
-                action: 'getPelangganPerHari',
-                startDate,
-                endDate
-            })
+        const [resT, resP] = await Promise.all([
+            $.getJSON('process/pemesanan/process.php', { action: 'getdetail', startDate, endDate }),
+            $.getJSON('process/pemesanan/process.php', { action: 'getPelangganPerHari', startDate, endDate })
         ]);
 
-        if (!transaksi.success || !pelanggan.success) {
-            console.warn('Data tidak valid');
-            return;
-        }
-
-        renderChart(transaksi.data, pelanggan.data);
-
-    } catch (error) {
-        console.error('Gagal ambil data grafik:', error);
-    }
+        if (resT.success && resP.success) renderCharts(resT.data, resP.data);
+    } catch (err) { console.error('Gagal muat grafik:', err); }
 }
 
-// =======================
-// RENDER CHART
-// =======================
-function renderChart(dataTransaksi, dataPelanggan) {
-    const labels = dataTransaksi.map(i => i.tanggal);
-
-    const transaksiData = dataTransaksi.map(i => i.total);
-    const pelangganData = dataPelanggan.map(i => i.total_pelanggan);
-
-    renderLineChart('grafikTransaksi', 'Total Transaksi', labels, transaksiData);
-    renderBarChart('grafikPelanggan', 'Total Pelanggan', labels, pelangganData);
-}
-
-// =======================
-// LINE CHART
-// =======================
-function renderLineChart(id, label, labels, data) {
-    const ctx = document.getElementById(id).getContext('2d');
-
-    if (chartInstances[id]) {
-        chartInstances[id].destroy();
-    }
-
-    chartInstances[id] = new Chart(ctx, {
+function renderCharts(dataT, dataP) {
+    const labels = dataT.map(i => i.tanggal);
+    const ctxT = document.getElementById('grafikTransaksi').getContext('2d');
+    if (chartTransaksi) chartTransaksi.destroy();
+    chartTransaksi = new Chart(ctxT, {
         type: 'line',
         data: {
             labels: labels,
             datasets: [{
-                label: label,
-                data: data,
-                borderWidth: 3,
-                tension: 0.4,
-                fill: true
+                label: 'Transaksi',
+                data: dataT.map(i => i.total),
+                borderColor: '#2563eb',
+                backgroundColor: 'rgba(37, 99, 235, 0.1)',
+                fill: true, tension: 0.4
             }]
-        },
-        options: {
-            responsive: true,
-            plugins: {
-                legend: { display: true }
-            },
-            scales: {
-                y: {
-                    beginAtZero: true,
-                    ticks: { precision: 0 }
-                }
-            }
         }
     });
-}
 
-// =======================
-// BAR CHART
-// =======================
-function renderBarChart(id, label, labels, data) {
-    const ctx = document.getElementById(id).getContext('2d');
-
-    if (chartInstances[id]) {
-        chartInstances[id].destroy();
-    }
-
-    chartInstances[id] = new Chart(ctx, {
+    const ctxP = document.getElementById('grafikPelanggan').getContext('2d');
+    if (chartPelanggan) chartPelanggan.destroy();
+    chartPelanggan = new Chart(ctxP, {
         type: 'bar',
         data: {
             labels: labels,
             datasets: [{
-                label: label,
-                data: data,
-                borderWidth: 1
+                label: 'Pelanggan',
+                data: dataP.map(i => i.total_pelanggan),
+                backgroundColor: '#10b981', borderRadius: 6
             }]
-        },
-        options: {
-            responsive: true,
-            plugins: {
-                legend: { display: true }
-            },
-            scales: {
-                y: {
-                    beginAtZero: true,
-                    ticks: { precision: 0 }
-                }
-            }
         }
     });
 }

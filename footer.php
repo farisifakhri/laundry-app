@@ -1,12 +1,12 @@
     </div><!-- /.app -->
 
-    <footer class="footer-bar">
+    </div><footer class="footer-bar">
         <div class="d-flex justify-content-between align-items-center w-100">
             <span style="font-size:12.5px;color:var(--text-muted);font-weight:600">
                 <i class="bi bi-water me-1" style="color:var(--primary)"></i>
                 Nugraha Laundry &mdash; Cepat &bull; Bersih &bull; Terpercaya
             </span>
-            <span style="font-size:12px;color:var(--text-muted)">&copy; <?= date('Y') ?></span>
+            <span style="font-size:12px;color:var(--text-muted)">&copy; <?= date('Y') ?> &bull; v2.0</span>
         </div>
     </footer>
 
@@ -29,14 +29,14 @@
     ?>
 
     <script>
-        // Script untuk toggle sidebar di tampilan mobile
         $(document).ready(function() {
+            // Toggle sidebar di mobile
             $('#btnToggleSidebar').click(function(e) {
                 e.stopPropagation();
                 $('.sidebar').toggleClass('show');
             });
 
-            // Klik di luar sidebar untuk menutupnya (khusus mobile)
+            // Tutup sidebar saat klik area di luar (mobile)
             $(document).click(function(e) {
                 if ($(window).width() <= 768) {
                     if (!$(e.target).closest('.sidebar, #btnToggleSidebar').length) {
@@ -47,5 +47,6 @@
         });
     </script>
 
+    <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.5/dist/JsBarcode.all.min.js"></script>
 </body>
 </html>

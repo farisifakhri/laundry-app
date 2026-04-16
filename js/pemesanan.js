@@ -146,9 +146,14 @@ async function getDataTransaksi() {
                     ? new Date(tanggal).toLocaleDateString('id-ID', { year: 'numeric', month: 'long', day: 'numeric' })
                     : '-';
 
-            data.forEach((transaksi, i) => {
+            data.forEach((transaksi, i) => { 
                 const tanggalOrder = formatTanggal(transaksi.created_at);
-
+                const cleanPhone = transaksi.telp_pelanggan.replace(/[^0-9]/g, '');
+                const finalPhone = cleanPhone.startsWith('0') ? '62' + cleanPhone.slice(1) : cleanPhone;
+                const pesan = window.encodeURIComponent(
+                    `Halo Kak *${transaksi.nama_pelanggan}*,\n\nCucian Kakak di *Nugraha Laundry* (#${transaksi.id_transaksi}) sudah SELESAI. ✨\n\nTotal: *Rp ${transaksi.total.toLocaleString('id-ID')}*\n\nTerima kasih! 🙏`
+                );
+                const linkWA = `https://wa.me/${finalPhone}?text=${pesan}`;
                 let layananHTML = '';
 
                 transaksi.detail_layanan.forEach((layanan) => {
@@ -194,21 +199,22 @@ async function getDataTransaksi() {
                     <tr>
                         <td>${(currentPage - 1) * limit + (i + 1)}</td>
                         <td>
-                            <small>No. Pesanan: ${transaksi.id_transaksi}</small><br>
-                            <strong>
-                            ${transaksi.nama_pelanggan}</strong><br>
-                            ${transaksi.alamat_pelanggan}<br>
-                            <small>${transaksi.telp_pelanggan} | ${transaksi.email_pelanggan}</small>
+                            <strong>${transaksi.nama_pelanggan}</strong><br>
+                            <small class="text-muted">#${transaksi.id_transaksi}</small>
                         </td>
                         <td>${transaksi.metode_pembayaran}</td>
                         <td>${tanggalOrder}</td>
                         <td>${layananHTML}</td>
-                        <td>Rp${transaksi.total.toLocaleString('id-ID')}</td>
+                        <td class="fw-bold text-primary">Rp${transaksi.total.toLocaleString('id-ID')}</td>
                         <td>
-                            <button class="btn btn-info btn-sm" 
-                                    onclick='cetakStruk(${JSON.stringify(transaksi)})'>
-                                <i class="bi bi-printer"></i> Cetak Struk
-                            </button>
+                            <div class="d-flex flex-column gap-2">
+                                <button class="btn btn-info btn-sm" onclick='cetakStruk(${JSON.stringify(transaksi)})'>
+                                    <i class="bi bi-printer"></i> Struk
+                                </button>
+                                <a href="${linkWA}" target="_blank" class="btn btn-success btn-sm">
+                                    <i class="bi bi-whatsapp"></i> Kabari
+                                </a>
+                            </div>
                         </td>
                     </tr>
                 `);
