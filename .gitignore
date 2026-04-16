@@ -1,0 +1,3 @@
+config/database.php  # (Opsional: agar password DB kamu tidak terlihat publik)
+.DS_Store
+*.log
